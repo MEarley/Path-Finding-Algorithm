@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 #include <raylib.h>
 
 using namespace std;
@@ -7,22 +8,22 @@ using namespace std;
 const int SCALE = 10;
 const int SCREENWIDTH = 800;
 const int SCREENHEIGHT = 450;
-const int xOFFSET = SCREENWIDTH / 2;
-const int yOFFSET = SCREENHEIGHT / 2;
+const int xOFFSET = 0; //SCREENWIDTH / 2;
+const int yOFFSET = 0; //SCREENHEIGHT / 2;
 
 #define SAND YELLOW
 
-class Materials{
+class NodeType{
     public:
     Color color;
     string name;
 
-    Materials(){
+    NodeType(){
         color = WHITE;
         name = "void";
     }
 
-    Materials(Color color_, string name_){
+    NodeType(Color color_, string name_){
         color = color_;
         name = name_;
     }
@@ -32,32 +33,43 @@ class Materials{
     }
 };
 
-class Particle{
+class Node{
     int x;
     int y;
+    int g;
+    int h;
+    int f;
     public:
-    Materials material;
+    Node* parent = NULL;
+    NodeType nType;
 
-    Particle(){
+    Node(){
         x = 0 + xOFFSET;
         y = 0 + yOFFSET;
-        material = Materials();
+        nType = NodeType();
     }
 
-    Particle(Color color_,string name_){
-        material.color = color_;
-        material.name = name_;
-    }
-
-    Particle(int x_, int y_, Color color_,string name_){
+    Node(int x_, int y_){
         x = x_ + xOFFSET;
         y = y_ + yOFFSET;
-        material.color = color_;
-        material.name = name_;
+        nType.color = GREEN;
+        nType.name = "OPEN";
+    }
+
+    Node(Color color_,string name_){
+        nType.color = color_;
+        nType.name = name_;
+    }
+
+    Node(int x_, int y_, Color color_,string name_){
+        x = x_ + xOFFSET;
+        y = y_ + yOFFSET;
+        nType.color = color_;
+        nType.name = name_;
     }
 
     string to_string(){
-        return material.name;
+        return nType.name;
     }
 
     int get_x(){
@@ -70,18 +82,38 @@ class Particle{
         x = (x_ * SCALE) + xOFFSET;
     }
     void set_y(int y_){
-        y = (-1 * y_ * SCALE) + yOFFSET;
+        y = (y_ * SCALE) + yOFFSET;
     }
 };
 
+void Findpath(Node start, Node end){
+    queue<Node> toCheck;
+    queue<Node> processed;
+
+
+}
+
 int main () {
 
-    vector<vector<Particle>> matrix(SCREENWIDTH / SCALE,vector<Particle>(SCREENHEIGHT / SCALE));
-
+    vector<vector<Node>> matrix(SCREENWIDTH / SCALE,vector<Node>(SCREENHEIGHT / SCALE));
+    for(int w=0;w<(int)matrix.size();w++){
+            for(int h=0;h<(int)matrix[w].size();h++){
+                matrix[w][h].set_x(w);
+                matrix[w][h].set_y(h);
+            }
+        }
     cout << "Hello World" << endl;
-    matrix[0][0].material.color = RED;
-    matrix[0][0].set_x(39);
-    matrix[0][0].set_y(2);
+    Node* start = &matrix[5][25];
+    Node* end = &matrix[30][5];
+    start->nType.color = BLUE;
+    end->nType.color = ORANGE;
+
+    Node* test = &matrix[30][4];
+    test->nType.color = GREEN;
+    end->parent = test;
+
+
+
 
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Particle Sandbox 2");
 	SetTargetFPS(60);               // Set game to run at 60 frames-per-second
@@ -100,15 +132,21 @@ int main () {
 	    // Draw
 	    //----------------------------------------------------------------------------------
 	    BeginDrawing();
-	    ClearBackground(BLUE);
+	    ClearBackground(GRAY);
 
-        for(int w=0;w<matrix.size();w++){
-            for(int h=0;h<matrix[w].size();h++){
-                DrawRectangle(matrix[w][h].get_x(),matrix[w][h].get_y(),SCALE,SCALE,matrix[w][h].material.color);
+        for(int w=0;w<(int)matrix.size();w++){
+            for(int h=0;h<(int)matrix[w].size();h++){
+                DrawRectangle(matrix[w][h].get_x(),matrix[w][h].get_y(),SCALE,SCALE,matrix[w][h].nType.color);
             }
         }
+
+        Node* next = end->parent;
+        while(next != NULL){
+            DrawRectangle(next->get_x(),next->get_y(),SCALE,SCALE,next->nType.color);
+        }
+       
 		
-	    DrawText("Mapping Bot", 190, 200, 20, BLACK);
+	    DrawText("Path Finding", 190, 200, 20, BLACK);
 		
 	    WaitTime(0.05);
 		EndDrawing();
