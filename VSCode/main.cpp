@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <math.h>
 #include <raylib.h>
 
 using namespace std;
@@ -36,12 +37,12 @@ class NodeType{
 class Node{
     int x;
     int y;
-    int g;
-    int h;
-    int f;
     public:
     Node* parent = NULL;
     NodeType nType;
+    int G = 9999;  // Distance from Node to start
+    int H = 9999;  // Distance from Node to end
+    int F = 9999;  // G + H
 
     Node(){
         x = 0 + xOFFSET;
@@ -72,6 +73,27 @@ class Node{
         return nType.name;
     }
 
+    int get_distance(Node goal){
+        int distance = (int)ceil(sqrt(pow(goal.x - x,2) + pow(goal.y - y,2)));
+        return distance;
+    }
+
+    int set_H(Node end){
+        H = get_distance(end);
+        update_F();
+        return H;
+    }
+
+    int set_G(Node start){
+        G = get_distance(start);
+        update_F();
+        return G;
+    }
+
+    void update_F(){
+        F = G + H;
+    }
+
     int get_x(){
         return x;
     }
@@ -86,11 +108,30 @@ class Node{
     }
 };
 
-void Findpath(Node start, Node end){
-    queue<Node> toCheck;
-    queue<Node> processed;
+class Compare {
+    public:
+    bool operator()(Node a, Node b){
+        return a.F > b.F;
+    }
+};
+
+void findPath(Node start, Node end){
+    priority_queue<Node,vector<Node>,Compare> open;   // Visited but not expanded
+    priority_queue<Node,vector<Node>,Compare> closed; // Visited and expanded
+    start.G = 0;
+    start.set_H(end);
+    open.push(start);
 
 
+
+
+    
+    while(!open.empty()){
+        cout<<(open.top()).F<<" ";
+        open.pop();
+    }
+
+    return;
 }
 
 int main () {
@@ -111,6 +152,12 @@ int main () {
     Node* test = &matrix[30][4];
     test->nType.color = GREEN;
     end->parent = test;
+
+    Node* test2 = &matrix[31][4];
+    test2->nType.color = GREEN;
+    test->parent = test2;
+
+    findPath(*start,*end);
 
 
 
@@ -143,6 +190,8 @@ int main () {
         Node* next = end->parent;
         while(next != NULL){
             DrawRectangle(next->get_x(),next->get_y(),SCALE,SCALE,next->nType.color);
+            next = next->parent;
+
         }
        
 		
