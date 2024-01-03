@@ -40,9 +40,9 @@ class Node{
     public:
     Node* parent = NULL;
     NodeType nType;
-    int G = 9999;  // Distance from Node to start
-    int H = 9999;  // Distance from Node to end
-    int F = 9999;  // G + H
+    int inital = 9999;  // Distance from Node to start
+    int heuristic  = 9999;  // Distance from Node to end
+    int cost = 9999;  // inital + heuristic
 
     Node(){
         x = 0 + xOFFSET;
@@ -79,19 +79,19 @@ class Node{
     }
 
     int set_H(Node end){
-        H = get_distance(end);
-        update_F();
-        return H;
+        heuristic = get_distance(end);
+        update_cost();
+        return heuristic ;
     }
 
-    int set_G(Node start){
-        G = get_distance(start);
-        update_F();
-        return G;
+    int set_inital(Node start){
+        inital = get_distance(start);
+        update_cost();
+        return inital;
     }
 
-    void update_F(){
-        F = G + H;
+    void update_cost(){
+        cost = heuristic + inital;
     }
 
     int get_x(){
@@ -100,34 +100,63 @@ class Node{
     int get_y(){
         return y;
     }
+
+    int get_x_scaled(){
+        return (x * SCALE) + xOFFSET;
+    }
+    int get_y_scaled(){
+        return (y * SCALE) + yOFFSET;
+    }
     void set_x(int x_){
-        x = (x_ * SCALE) + xOFFSET;
+        x = x_;
     }
     void set_y(int y_){
-        y = (y_ * SCALE) + yOFFSET;
+        y = y_;
     }
 };
 
 class Compare {
     public:
-    bool operator()(Node a, Node b){
-        return a.F > b.F;
+    bool operator()(Node* a, Node* b){
+        return a->cost > b->cost;
     }
 };
 
-void findPath(Node start, Node end){
-    priority_queue<Node,vector<Node>,Compare> open;   // Visited but not expanded
-    priority_queue<Node,vector<Node>,Compare> closed; // Visited and expanded
-    start.G = 0;
-    start.set_H(end);
+void findPath(Node* start, Node* end, vector<vector<Node>> mat){
+    priority_queue<Node*,vector<Node*>,Compare> open;   // Visited but not expanded
+    priority_queue<Node*,vector<Node*>,Compare> closed; // Visited and expanded
+    start->inital = 0;
+    start->set_H(*end);
     open.push(start);
-
-
-
-
     
     while(!open.empty()){
-        cout<<(open.top()).F<<" ";
+        // From the open list, grab the node with the smallest cost
+        Node* currentNode = open.top();
+        cout<<currentNode->cost<<" ";
+        
+        if(currentNode == end){
+            break; // Path found
+        }
+
+        // Add all neighboring Nodes to a vector
+        int x = currentNode->get_x();
+        int y = currentNode->get_y();
+        vector<Node*> neighborNodes(8);
+        neighborNodes[0] = &mat[x][y-1];    // North
+        neighborNodes[1] = &mat[x+1][y-1];    // North-East
+        neighborNodes[2] = &mat[x+1][y];    // East
+        neighborNodes[3] = &mat[x+1][y+1];    // South-East
+        neighborNodes[4] = &mat[x][y+1];    // South
+        neighborNodes[5] = &mat[x-1][y+1];    // South-West
+        neighborNodes[6] = &mat[x-1][y];    // West
+        neighborNodes[7] = &mat[x-1][y-1];    // North-West
+
+        for (auto& i : neighborNodes) { 
+            cout << i->heuristic << ' '; 
+        } 
+
+        // Move current node to closed queue
+        closed.push(currentNode);  
         open.pop();
     }
 
@@ -143,7 +172,7 @@ int main () {
                 matrix[w][h].set_y(h);
             }
         }
-    cout << "Hello World" << endl;
+    cout << "Debugging Output" << endl << endl;
     Node* start = &matrix[5][25];
     Node* end = &matrix[30][5];
     start->nType.color = BLUE;
@@ -157,11 +186,12 @@ int main () {
     test2->nType.color = GREEN;
     test->parent = test2;
 
-    findPath(*start,*end);
+    findPath(start,end,matrix);
 
 
 
-
+    cout << "End of Debugging Output" << endl << endl;
+    
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Particle Sandbox 2");
 	SetTargetFPS(60);               // Set game to run at 60 frames-per-second
 
@@ -183,13 +213,13 @@ int main () {
 
         for(int w=0;w<(int)matrix.size();w++){
             for(int h=0;h<(int)matrix[w].size();h++){
-                DrawRectangle(matrix[w][h].get_x(),matrix[w][h].get_y(),SCALE,SCALE,matrix[w][h].nType.color);
+                DrawRectangle(matrix[w][h].get_x_scaled(),matrix[w][h].get_y_scaled(),SCALE,SCALE,matrix[w][h].nType.color);
             }
         }
 
         Node* next = end->parent;
         while(next != NULL){
-            DrawRectangle(next->get_x(),next->get_y(),SCALE,SCALE,next->nType.color);
+            DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,next->nType.color);
             next = next->parent;
 
         }
@@ -206,6 +236,6 @@ int main () {
 	//--------------------------------------------------------------------------------------
 	CloseWindow();        // Close window and OpenGL context
 	//--------------------------------------------------------------------------------------
-
+    
     return 0;
 }
