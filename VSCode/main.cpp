@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <set>
 #include <math.h>
 #include <raylib.h>
 
@@ -78,7 +79,7 @@ class Node{
         return distance;
     }
 
-    int set_H(Node end){
+    int set_heuristic(Node end){
         heuristic = get_distance(end);
         update_cost();
         return heuristic ;
@@ -88,6 +89,12 @@ class Node{
         inital = get_distance(start);
         update_cost();
         return inital;
+    }
+
+    void set_inital(int distance){
+        inital = distance;
+        update_cost();
+        return;
     }
 
     void update_cost(){
@@ -118,21 +125,50 @@ class Node{
 class Compare {
     public:
     bool operator()(Node* a, Node* b){
-        return a->cost > b->cost;
+        return a->cost < b->cost;
     }
 };
 
-void findPath(Node* start, Node* end, vector<vector<Node>> mat){
-    priority_queue<Node*,vector<Node*>,Compare> open;   // Visited but not expanded
-    priority_queue<Node*,vector<Node*>,Compare> closed; // Visited and expanded
-    start->inital = 0;
-    start->set_H(*end);
-    open.push(start);
+bool setContains(set<Node*,Compare> nodeSet, Node* target){ 
+    for (set<Node*,Compare>::iterator i =nodeSet.begin();i!=nodeSet.end();i++) { 
+        if(*i == target)
+            return true;
+    }
+    return false;
+}
+
+void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
+    set<Node*,Compare> open;    // Visited but not expanded
+    set<Node*,Compare> closed;  // Visited and expanded
+    //priority_queue<Node*,vector<Node*>,Compare> open;   // Visited but not expanded
+    //priority_queue<Node*,vector<Node*>,Compare> closed; // Visited and expanded
+    cout<<(mat[5][25]).inital<<endl;
+    start->set_inital(0);
+    start->set_heuristic(*end);
+    open.insert(start);
+    Node* test;
+    test = &mat[5][25];
+    cout<<(mat[5][25]).inital<<endl;
+    cout<<start->inital<<endl;
+    cout<<(test == start)<<"test"<<endl;
     
+    //for (set<Node*,Compare>::iterator i =open.begin();i!=open.end();i++) { 
+        //std::cout<<((*i)->cost)<<endl;
+    //}
+
+    std::cout<<(*open.begin())->cost<<endl;
+    
+    std::cout<<setContains(open,start)<<endl;
+    std::cout<<setContains(open,start)<<endl;
+    std::cout<<setContains(open,end)<<endl;
+
+    Node* currentNode;
+    cout<<*open.begin()<< " "<<start<<" "<<start->get_x()<<endl;
+    cout<<end<<endl;
     while(!open.empty()){
         // From the open list, grab the node with the smallest cost
-        Node* currentNode = open.top();
-        cout<<currentNode->cost<<" ";
+        currentNode = *open.begin();
+        //cout<<currentNode->get_x()<<" "<<currentNode<<endl;
         
         if(currentNode == end){
             break; // Path found
@@ -150,14 +186,38 @@ void findPath(Node* start, Node* end, vector<vector<Node>> mat){
         neighborNodes[5] = &mat[x-1][y+1];    // South-West
         neighborNodes[6] = &mat[x-1][y];    // West
         neighborNodes[7] = &mat[x-1][y-1];    // North-West
-
-        for (auto& i : neighborNodes) { 
-            cout << i->heuristic << ' '; 
+        //cout<<neighborNodes[3]->get_x()<<endl;
+        for (auto& neighbor : neighborNodes) { 
+            int neighborCost =  currentNode->inital + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
+            if(setContains(open,neighbor)){
+                if(neighbor->inital <= neighborCost){
+                    continue;
+                }
+            }
+            else if(setContains(closed,neighbor)){
+                if(neighbor->inital <= neighborCost){
+                    continue;
+                }
+                else{
+                    closed.erase(neighbor);
+                    open.insert(neighbor);
+                }
+            }
+            else{
+                open.insert(neighbor);
+                neighbor->set_heuristic(*end);
+            }
+            neighbor->set_inital(neighborCost);
+            neighbor->parent = currentNode;
         } 
 
         // Move current node to closed queue
-        closed.push(currentNode);  
-        open.pop();
+        closed.insert(currentNode);  
+        open.erase(currentNode);
+    }
+
+    if(currentNode != end){
+        cout<<"Error Path Not Found"<<endl;
     }
 
     return;
@@ -172,7 +232,7 @@ int main () {
                 matrix[w][h].set_y(h);
             }
         }
-    cout << "Debugging Output" << endl << endl;
+    std::cout << "Debugging Output" << endl << endl;
     Node* start = &matrix[5][25];
     Node* end = &matrix[30][5];
     start->nType.color = BLUE;
@@ -191,7 +251,7 @@ int main () {
 
 
     cout << "End of Debugging Output" << endl << endl;
-    
+
     InitWindow(SCREENWIDTH, SCREENHEIGHT, "Particle Sandbox 2");
 	SetTargetFPS(60);               // Set game to run at 60 frames-per-second
 
