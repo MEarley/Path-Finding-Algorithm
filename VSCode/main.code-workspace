@@ -59,7 +59,8 @@
 			"iterator": "cpp",
 			"numeric": "cpp",
 			"random": "cpp",
-			"numbers": "cpp"
+			"numbers": "cpp",
+			"list": "cpp"
 		}
 	}
 }
