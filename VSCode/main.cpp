@@ -173,6 +173,7 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         //std::cout<<open.size()<<" "<<"Open Size"<<endl;
 
         if(currentNode == end){
+            end->nType.color = ORANGE;
             std::cout<<"Path Found!!!"<<endl;
             break; // Path found
         }
@@ -186,20 +187,20 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         vector<Node*> neighborNodes;
         for(int offX=-1,i=0;offX<=1;offX++){
             if(x+offX < 0 || x+offX > mat.size()){
-                cout<<"skip";
+                //cout<<"skip";
                 continue;}
             
             for(int offY=-1;offY<=1;offY++){
                 if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > mat[x].size()){
-                    cout<<"skip";
+                    //cout<<"skip";
                     continue;}
                 neighborNodes.push_back(&mat[x+offX][y+offY]); 
                 
             }
         }
-        cout<<endl;
+        //cout<<endl;
         neighborNodes.shrink_to_fit();
-        std::cout<<neighborNodes.size()<<" "<<"Neighbor Size"<<endl;
+        //std::cout<<neighborNodes.size()<<" "<<"Neighbor Size"<<endl;
         for (auto neighbor : neighborNodes) {
             //std::cout << neighbor->cost<<" ";
             if(listContains(closed,neighbor))
@@ -383,6 +384,7 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
 int main () {
     std::cout << "Debugging Output" << endl << endl;
 
+    // Initialize a matrix scaled by the amount of pixels desired on screen
     vector<vector<Node>> matrix(SCREENWIDTH / SCALE,vector<Node>(SCREENHEIGHT / SCALE));
     for(int w=0;w<(int)matrix.size();w++){
             for(int h=0;h<(int)matrix[w].size();h++){
@@ -395,30 +397,19 @@ int main () {
                 }
             }
     }
-    cout<<matrix.size()<<" ";
-    cout<<matrix[0].size()<<endl;
-    Node* start = &matrix[70][40];
-    //Node* end = &matrix[30][5];
-    //Node* start = &matrix[1][1];
-    Node* end = &matrix[0][0];
+    cout<<matrix.size()<<" x "<<matrix[0].size()<<endl;
+
+    // Default start and end nodes
+    Node* start = &matrix[0][0];
+    Node* end = &matrix[30][20];
     start->nType.color = BLUE;
     end->nType.color = ORANGE;
 
-    //Node* test = &matrix[30][4];
-    //test->nType.color = GREEN;
-    //end->parent = test;
-
-    //Node* test2 = &matrix[31][4];
-    //test2->nType.color = GREEN;
-    //test->parent = test2;
-
     findPath(start,end,matrix);
-    start->parent = NULL;
-
 
     std::cout <<endl<<endl<< "End of Debugging Output" << endl << endl;
 
-    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Particle Sandbox 2");
+    InitWindow(SCREENWIDTH, SCREENHEIGHT, "Path Finding Algorithm");
 	SetTargetFPS(60);               // Set game to run at 60 frames-per-second
 
 	//--------------------------------------------------------------------------------------
@@ -428,34 +419,52 @@ int main () {
 	{
 	    // Update variables
 	    //----------------------------------------------------------------------------------
-		
+		int mousePositionX = (GetMouseX() - xOFFSET) / SCALE;
+        int mousePositionY = (GetMouseY() - yOFFSET) / SCALE;
 	    	
+        // Set new end point
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
+            end = &matrix[mousePositionX][mousePositionY];
+            end->nType.color = ORANGE;
+            findPath(start,end,matrix);
+        }
+
 	    //----------------------------------------------------------------------------------
 
 	    // Draw
 	    //----------------------------------------------------------------------------------
 	    BeginDrawing();
-	    ClearBackground(GRAY);
-        int pathCount =0;
+	    ClearBackground(RAYWHITE);
+        
+        // Explored Areas
+        /*
         for(int w=0;w<(int)matrix.size();w++){
             for(int h=0;h<(int)matrix[w].size();h++){
                 DrawRectangle(matrix[w][h].get_x_scaled(),matrix[w][h].get_y_scaled(),SCALE,SCALE,matrix[w][h].nType.color);
-                if(matrix[w][h].nType.name == "PATH"){
-                    pathCount++;
-                }
             }
         }
+        */
 
-        Node* next = end->parent;
-        end->nType.color = ORANGE;
-        int i = 0;
-        while(next != start){
-            //cout<<"Distance from start: "<<next->inital<<endl;
-            DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,RED);
-            next = next->parent;
-            //cout<<"x: "<<next->get_x()<<" y: "<<next->get_y()<<endl;
-        }
+
+        // Draw start and end point
+        DrawRectangle(start->get_x_scaled(),start->get_y_scaled(),SCALE,SCALE,start->nType.color);
+        DrawRectangle(end->get_x_scaled(),end->get_y_scaled(),SCALE,SCALE,end->nType.color);
+
        
+        
+        // Draw out path
+        int pathCount =0;
+        Node* next = end->parent;
+        while(next != start){
+            DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,GREEN);
+            next = next->parent;
+            pathCount++;
+        }
+
+        // Print out mouse coordinates
+        string mousePosition = "x: " + to_string(mousePositionX) + " y: " + to_string(mousePositionY);
+        DrawText(mousePosition.c_str(),700,0,10,BLACK);
+        // Print out steps taken
 		DrawText(to_string(pathCount).c_str(), 30, 0, 20, BLACK);
 	    DrawText("Path Finding", 190, 200, 20, BLACK);
 		
