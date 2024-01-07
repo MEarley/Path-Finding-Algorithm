@@ -14,27 +14,32 @@ const int SCREENHEIGHT = 450;
 const int xOFFSET = 0; //SCREENWIDTH / 2;
 const int yOFFSET = 0; //SCREENHEIGHT / 2;
 
-#define SAND YELLOW
+enum nodeTypes{WALL, PATH, VOID};
 
 
 
 class NodeType{
     public:
-    Color color;
-    string name;
+    Color color = WHITE;
+    nodeTypes name = VOID;
 
-    NodeType(){
-        color = WHITE;
-        name = "void";
-    }
+    NodeType(){}
 
-    NodeType(Color color_, string name_){
+    NodeType(Color color_, nodeTypes name_){
         color = color_;
         name = name_;
     }
 
     string to_string(){
-        return name;
+        switch(name){
+            case VOID :
+                return "Void";
+            case PATH :
+                return "Path";
+            case WALL :
+                return "Wall";
+        }
+        return "Error: Undefinable type";
     }
 };
 
@@ -60,12 +65,12 @@ class Node{
         nType = NodeType();
     }
 
-    Node(Color color_,string name_){
+    Node(Color color_,nodeTypes name_){
         nType.color = color_;
         nType.name = name_;
     }
 
-    Node(int x_, int y_, Color color_,string name_){
+    Node(int x_, int y_, Color color_,nodeTypes name_){
         x = x_ + xOFFSET;
         y = y_ + yOFFSET;
         nType.color = color_;
@@ -73,7 +78,7 @@ class Node{
     }
 
     string to_string(){
-        return nType.name;
+        return nType.to_string();
     }
 
     int get_distance(Node goal){
@@ -151,7 +156,8 @@ bool listContains(list<Node*> l, Node* target){
     return false;
 }
 
-void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
+// If a path is found, return true; otherwise, false
+bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
     priority_queue<Node*,vector<Node*>,Compare> open_cost;   // Visited but not expanded (Uses custom compare operator)
     set<Node*> open_addresses;    // Visited but not expanded
     set<Node*> closed;  // Visited and expanded
@@ -189,10 +195,10 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         // neighborNodes included all nodes within an 8 directional radius
         // around the currentNode. This does not include walls or nodes outside the border
         for(int offX=-1;offX<=1;offX++){
-            if(x+offX < 0 || x+offX > (int)mat.size())
+            if(x+offX < 0 || x+offX >= (int)mat.size())
                 continue; 
             for(int offY=-1;offY<=1;offY++){
-                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > (int)mat[x].size())
+                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY >= (int)mat[x].size() || mat[x+offX][y+offY].nType.name == WALL)
                     continue; 
                 neighborNodes.push_back(&mat[x+offX][y+offY]); 
             }
@@ -223,7 +229,7 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         if(currentNode != end)
             cout<<"Error: Path not found"<<endl;
 
-    return;
+    return currentNode == end;
 }
 
 int main () {
@@ -256,7 +262,7 @@ int main () {
 
 
     time_start = clock();
-    findPath(start,end,matrix);
+    bool pathExist = findPath(start,end,matrix);
     time_end = clock();
     double time_elapsed = time_taken(time_start,time_end);
 
@@ -276,28 +282,60 @@ int main () {
         int mousePositionY = (GetMouseY() - yOFFSET) / SCALE;
 	    bool update = false;
 
+        // Cap mouse position coords
+        if(mousePositionX >= (int)matrix.size()){
+            mousePositionX = matrix.size() - 1;
+        }
+
+        if(mousePositionY >= (int)matrix[0].size()){
+            mousePositionY = matrix[0].size() - 1;
+        }
+
         // Set new end point
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
-            if(&matrix[mousePositionX][mousePositionY] != start){
+            if(matrix[mousePositionX][mousePositionY].nType.name != WALL && &matrix[mousePositionX][mousePositionY] != start){
                 end = &matrix[mousePositionX][mousePositionY];
                 end->nType.color = ORANGE;
+                end->nType.name = PATH;
                 time_start = clock();
-                findPath(start,end,matrix);
+                pathExist = findPath(start,end,matrix);
+                update = pathExist;
                 time_end = clock();
                 time_elapsed = time_taken(time_start,time_end);
-                update = true;
             }
         }
 
+        // Place Wall
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_W)){
             Node* node = &matrix[mousePositionX][mousePositionY];
             if(node != end || node != start){
-                node->nType.name = "WALL";
+                node->nType.name = WALL;
                 node->nType.color = GRAY;
                 walls.insert(node);
                 update = true;
             }
         }
+
+        // Delete Wall
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_E)){
+            Node* node = &matrix[mousePositionX][mousePositionY];
+            if(node->nType.name == WALL){
+                node->nType.name = VOID;
+                node->nType.color = WHITE;
+                walls.erase(node);
+                update = true;
+            }
+        }
+
+        // Delete All Walls
+        if(IsKeyPressed(KEY_LEFT_CONTROL) && IsKeyDown(KEY_E) || IsKeyPressed(KEY_E) && IsKeyDown(KEY_LEFT_CONTROL)){
+            for(Node* segment : walls){
+                segment->nType.name = VOID;
+                segment->nType.color = WHITE;
+            }
+            walls.clear();
+        }
+        
 
 	    //----------------------------------------------------------------------------------
 
@@ -320,18 +358,21 @@ int main () {
         DrawRectangle(start->get_x_scaled(),start->get_y_scaled(),SCALE,SCALE,start->nType.color);
         DrawRectangle(end->get_x_scaled(),end->get_y_scaled(),SCALE,SCALE,end->nType.color);
 
-        // Draw walls
-        for(Node* segment : walls){
-            DrawRectangle(segment->get_x_scaled(),segment->get_y_scaled(),SCALE,SCALE,GRAY);
-        }
-        
         // Draw out path
         int pathCount =0;
         Node* next = end->parent;
-        while(next != start){
-            DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,GREEN);
-            next = next->parent;
-            pathCount++;
+        if(pathExist){
+            while(next != start){
+                DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,GREEN);
+                next = next->parent;
+                pathCount++;
+            }
+        }
+        
+
+        // Draw walls
+        for(Node* segment : walls){
+            DrawRectangle(segment->get_x_scaled(),segment->get_y_scaled(),SCALE,SCALE,GRAY);
         }
 
         // Write out mouse coordinates
@@ -349,7 +390,7 @@ int main () {
         
         DrawText("Path Finding", 190, 200, 20, BLACK);
 		
-	    WaitTime(0.05);
+	    WaitTime(0.01);
 		EndDrawing();
 	    //----------------------------------------------------------------------------------
 	}
