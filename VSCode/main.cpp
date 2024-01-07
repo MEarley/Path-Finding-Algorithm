@@ -16,6 +16,8 @@ const int yOFFSET = 0; //SCREENHEIGHT / 2;
 
 #define SAND YELLOW
 
+
+
 class NodeType{
     public:
     Color color;
@@ -42,9 +44,9 @@ class Node{
     public:
     Node* parent = NULL;
     NodeType nType;
-    int inital = 9999;  // Distance from Node to start
+    int initial = 9999;  // Distance from Node to start
     int heuristic  = 9999;  // Distance from Node to end
-    int cost = 9999;  // inital + heuristic
+    int cost = 9999;  // initial + heuristic
 
     Node(){
         x = 0 + xOFFSET;
@@ -85,20 +87,20 @@ class Node{
         return heuristic ;
     }
 
-    int set_inital(Node start){
-        inital = get_distance(start);
+    int set_initial(Node start){
+        initial = get_distance(start);
         update_cost();
-        return inital;
+        return initial;
     }
 
-    void set_inital(int distance){
-        inital = distance;
+    void set_initial(int distance){
+        initial = distance;
         update_cost();
         return;
     }
 
     void update_cost(){
-        cost = heuristic + inital;
+        cost = heuristic + initial;
     }
 
     int get_x(){
@@ -124,10 +126,14 @@ class Node{
 
 class Compare {
     public:
-    bool operator()(Node* a, Node* b){
-        return a->cost < b->cost;
+    bool operator()(Node* const& a, Node* const& b){
+        return a->cost > b->cost;
     }
 };
+
+double time_taken(clock_t start, clock_t end){
+    return double(end - start) / double(CLOCKS_PER_SEC);
+}
 
 bool setContains(set<Node*,Compare> nodeSet, Node* target){ 
     for (set<Node*,Compare>::iterator i =nodeSet.begin();i!=nodeSet.end();i++) { 
@@ -146,29 +152,36 @@ bool listContains(list<Node*> l, Node* target){
 }
 
 void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
-    list<Node*> open;    // Visited but not expanded
-    list<Node*> closed;  // Visited and expanded
+    priority_queue<Node*,vector<Node*>,Compare> open_cost;   // Visited but not expanded (Uses custom compare operator)
+    set<Node*> open_addresses;    // Visited but not expanded
+    set<Node*> closed;  // Visited and expanded
     
     // Initializing start variable
-    start->set_inital(0);
+    start->set_initial(0);
     start->set_heuristic(*end);
     start->parent = NULL;
-    open.push_front(start);
+
+    open_addresses.insert(start);
+    open_cost.push(start);
     
     // Loop until destination is reached
-    while(!open.empty()){
+    while(!open_addresses.empty()){
         // find lowest F score (cost) and move it to the closed list
-        Node* currentNode = open.front();
+        Node* currentNode = open_cost.top();
+        open_cost.pop();
+
+        /*
+        // TODO: Optimize! use a different datatype
         for (auto const& nodes : open){
             //cout<<nodes->cost<<" ";
             if(nodes->cost < currentNode->cost){
                 //cout<<"Lowest: "<<nodes->cost;
                 currentNode = nodes;
             }
-        }
+        }*/
         //cout<<endl;
-
-        open.remove(currentNode);
+        open_addresses.erase(currentNode);
+        //open.remove(currentNode);
         
         //std::cout<<open.size()<<" "<<"Open Size"<<endl;
 
@@ -178,20 +191,20 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
             break; // Path found
         }
 
-        closed.push_front(currentNode);
+        closed.insert(currentNode);
         //cout<<listContains(closed,currentNode);
         //cout<<listContains(open, currentNode)<<endl;
         // Add all neighboring nodes to a vector
         int x = currentNode->get_x();
         int y = currentNode->get_y();
         vector<Node*> neighborNodes;
-        for(int offX=-1,i=0;offX<=1;offX++){
-            if(x+offX < 0 || x+offX > mat.size()){
+        for(int offX=-1;offX<=1;offX++){
+            if(x+offX < 0 || x+offX > (int)mat.size()){
                 //cout<<"skip";
                 continue;}
             
             for(int offY=-1;offY<=1;offY++){
-                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > mat[x].size()){
+                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > (int)mat[x].size()){
                     //cout<<"skip";
                     continue;}
                 neighborNodes.push_back(&mat[x+offX][y+offY]); 
@@ -203,19 +216,22 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         //std::cout<<neighborNodes.size()<<" "<<"Neighbor Size"<<endl;
         for (auto neighbor : neighborNodes) {
             //std::cout << neighbor->cost<<" ";
-            if(listContains(closed,neighbor))
+            if(closed.count(neighbor))
                 continue;
 
-            bool inOpen = listContains(open, neighbor);
-            int neighborCost =  currentNode->inital + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
-            if(!inOpen || neighborCost < neighbor->inital){
-                neighbor->set_inital(neighborCost);
+            //bool inOpen = listContains(open, neighbor);
+            bool inOpen = open_addresses.count(neighbor);
+            int neighborCost =  currentNode->initial + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
+            if(!inOpen || neighborCost < neighbor->initial){
+                neighbor->set_initial(neighborCost);
                 neighbor->parent = currentNode;
                 neighbor->nType.color = GREEN;
 
                 if(!inOpen){
                     neighbor->set_heuristic(*end);
-                    open.push_front(neighbor);
+                    //open.push_front(neighbor);
+                    open_addresses.insert(neighbor);
+                    open_cost.push(neighbor);
                 }
             }
             
@@ -234,16 +250,16 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
     set<Node*,Compare> closed;  // Visited and expanded
     //priority_queue<Node*,vector<Node*>,Compare> open;   // Visited but not expanded
     //priority_queue<Node*,vector<Node*>,Compare> closed; // Visited and expanded
-    //cout<<(mat[5][25]).inital<<endl;
-    start->set_inital(0);
+    //cout<<(mat[5][25]).initial<<endl;
+    start->set_initial(0);
     start->set_heuristic(*end);
     open.insert(start);
     end->heuristic = 0;
-    end->set_inital(*start);
+    end->set_initial(*start);
     Node* test;
     test = &mat[5][25];
-    //cout<<(mat[5][25]).inital<<endl;
-    //cout<<start->inital<<endl;
+    //cout<<(mat[5][25]).initial<<endl;
+    //cout<<start->initial<<endl;
     //cout<<(test == start)<<"test"<<endl;
     std::cout<<start->get_distance(*end)<<" Distance"<<endl;
 
@@ -324,15 +340,15 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         //cout<<neighborNodes[3]->get_x()<<endl;
         for (auto neighbor : neighborNodes) { 
             //cout<<neighbor<< "Address"<<endl;
-            int neighborCost =  currentNode->inital + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
+            int neighborCost =  currentNode->initial + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
             if(setContains(open,neighbor)){
                 //cout<<"open"<<endl;
-                if(neighbor->inital <= neighborCost){
+                if(neighbor->initial <= neighborCost){
                     continue;
                 }
                 else{
                     open.erase(neighbor);
-                    neighbor->set_inital(neighborCost);
+                    neighbor->set_initial(neighborCost);
                     neighbor->parent = currentNode;
                     neighbor->nType.color = GREEN;
                     neighbor->nType.name = "PATH";
@@ -341,12 +357,12 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
             }
             else if(setContains(closed,neighbor)){
                 //cout<<"closed"<<endl;
-                if(neighbor->inital <= neighborCost){
+                if(neighbor->initial <= neighborCost){
                     continue;
                 }
                 else{
                     closed.erase(neighbor);
-                    neighbor->set_inital(neighborCost);
+                    neighbor->set_initial(neighborCost);
                     neighbor->parent = currentNode;
                     neighbor->nType.color = GREEN;
                     neighbor->nType.name = "PATH";
@@ -357,14 +373,14 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
                 //cout<<"neither"<<endl;
                 
                 neighbor->set_heuristic(*end);
-                neighbor->set_inital(neighborCost);
+                neighbor->set_initial(neighborCost);
                 std::cout<<neighbor->heuristic<<" H"<<endl;
                 neighbor->parent = currentNode;
                 neighbor->nType.color = GREEN;
                 neighbor->nType.name = "PATH";
                 open.insert(neighbor);
             }
-            //neighbor->set_inital(neighborCost);
+            //neighbor->set_initial(neighborCost);
             //neighbor->parent = currentNode;
             //neighbor->nType.color = GREEN;
             //neighbor->nType.name = "PATH";
@@ -383,6 +399,9 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
 
 int main () {
     std::cout << "Debugging Output" << endl << endl;
+
+    // Used for optimizing
+    clock_t time_start, time_end;
 
     // Initialize a matrix scaled by the amount of pixels desired on screen
     vector<vector<Node>> matrix(SCREENWIDTH / SCALE,vector<Node>(SCREENHEIGHT / SCALE));
@@ -405,7 +424,10 @@ int main () {
     start->nType.color = BLUE;
     end->nType.color = ORANGE;
 
+    time_start = clock();
     findPath(start,end,matrix);
+    time_end = clock();
+    double time_elapsed = time_taken(time_start,time_end);
 
     std::cout <<endl<<endl<< "End of Debugging Output" << endl << endl;
 
@@ -426,7 +448,10 @@ int main () {
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
             end = &matrix[mousePositionX][mousePositionY];
             end->nType.color = ORANGE;
+            time_start = clock();
             findPath(start,end,matrix);
+            time_end = clock();
+            time_elapsed = time_taken(time_start,time_end);
         }
 
 	    //----------------------------------------------------------------------------------
@@ -461,12 +486,20 @@ int main () {
             pathCount++;
         }
 
-        // Print out mouse coordinates
+        // Write out mouse coordinates
         string mousePosition = "x: " + to_string(mousePositionX) + " y: " + to_string(mousePositionY);
         DrawText(mousePosition.c_str(),700,0,10,BLACK);
-        // Print out steps taken
-		DrawText(to_string(pathCount).c_str(), 30, 0, 20, BLACK);
-	    DrawText("Path Finding", 190, 200, 20, BLACK);
+        // Write out steps taken
+		DrawText(("Step count: " + to_string(pathCount)).c_str(), 30, 0, 20, BLACK);
+	    
+        // Write out time elapsed during findPath()
+        if(time_elapsed >= 1.0)
+            DrawText(("Time elapsed: " + to_string((ceil(time_elapsed * 1000)/1000.00)) + "sec").c_str(), 30, 30, 20, BLACK);
+        else
+            DrawText(("Time elapsed: " + to_string(((int)(time_elapsed * 1000))) + "ms").c_str(), 30, 30, 20, BLACK);
+        
+        
+        DrawText("Path Finding", 190, 200, 20, BLACK);
 		
 	    WaitTime(0.05);
 		EndDrawing();
