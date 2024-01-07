@@ -163,65 +163,50 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
 
     open_addresses.insert(start);
     open_cost.push(start);
+
+    Node* currentNode;
     
     // Loop until destination is reached
     while(!open_addresses.empty()){
         // find lowest F score (cost) and move it to the closed list
-        Node* currentNode = open_cost.top();
+        currentNode = open_cost.top();
         open_cost.pop();
-
-        /*
-        // TODO: Optimize! use a different datatype
-        for (auto const& nodes : open){
-            //cout<<nodes->cost<<" ";
-            if(nodes->cost < currentNode->cost){
-                //cout<<"Lowest: "<<nodes->cost;
-                currentNode = nodes;
-            }
-        }*/
-        //cout<<endl;
         open_addresses.erase(currentNode);
-        //open.remove(currentNode);
-        
-        //std::cout<<open.size()<<" "<<"Open Size"<<endl;
+        closed.insert(currentNode);
 
+        // End loop if currentNode is the end Node
         if(currentNode == end){
             end->nType.color = ORANGE;
             std::cout<<"Path Found!!!"<<endl;
-            break; // Path found
+            break;
         }
 
-        closed.insert(currentNode);
-        //cout<<listContains(closed,currentNode);
-        //cout<<listContains(open, currentNode)<<endl;
         // Add all neighboring nodes to a vector
         int x = currentNode->get_x();
         int y = currentNode->get_y();
+
         vector<Node*> neighborNodes;
+        // neighborNodes included all nodes within an 8 directional radius
+        // around the currentNode. This does not include walls or nodes outside the border
         for(int offX=-1;offX<=1;offX++){
-            if(x+offX < 0 || x+offX > (int)mat.size()){
-                //cout<<"skip";
-                continue;}
-            
+            if(x+offX < 0 || x+offX > (int)mat.size())
+                continue; 
             for(int offY=-1;offY<=1;offY++){
-                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > (int)mat[x].size()){
-                    //cout<<"skip";
-                    continue;}
+                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > (int)mat[x].size())
+                    continue; 
                 neighborNodes.push_back(&mat[x+offX][y+offY]); 
-                
             }
         }
-        //cout<<endl;
         neighborNodes.shrink_to_fit();
-        //std::cout<<neighborNodes.size()<<" "<<"Neighbor Size"<<endl;
+        
+        // For each neighbor node, check whether it is in either list and calculate F cost
         for (auto neighbor : neighborNodes) {
-            //std::cout << neighbor->cost<<" ";
             if(closed.count(neighbor))
                 continue;
 
-            //bool inOpen = listContains(open, neighbor);
             bool inOpen = open_addresses.count(neighbor);
             int neighborCost =  currentNode->initial + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
+            
             if(!inOpen || neighborCost < neighbor->initial){
                 neighbor->set_initial(neighborCost);
                 neighbor->parent = currentNode;
@@ -229,172 +214,16 @@ void findPath(Node* start, Node* end, vector<vector<Node>> &mat){
 
                 if(!inOpen){
                     neighbor->set_heuristic(*end);
-                    //open.push_front(neighbor);
                     open_addresses.insert(neighbor);
                     open_cost.push(neighbor);
                 }
-            }
-            
+            }   
         }
-
     }
-
-    
-    
-    
-    
-    
-    return;
-    /*
-    set<Node*,Compare> open;    // Visited but not expanded
-    set<Node*,Compare> closed;  // Visited and expanded
-    //priority_queue<Node*,vector<Node*>,Compare> open;   // Visited but not expanded
-    //priority_queue<Node*,vector<Node*>,Compare> closed; // Visited and expanded
-    //cout<<(mat[5][25]).initial<<endl;
-    start->set_initial(0);
-    start->set_heuristic(*end);
-    open.insert(start);
-    end->heuristic = 0;
-    end->set_initial(*start);
-    Node* test;
-    test = &mat[5][25];
-    //cout<<(mat[5][25]).initial<<endl;
-    //cout<<start->initial<<endl;
-    //cout<<(test == start)<<"test"<<endl;
-    std::cout<<start->get_distance(*end)<<" Distance"<<endl;
-
-    
-    
-    //for (set<Node*,Compare>::iterator i =open.begin();i!=open.end();i++) { 
-        //std::cout<<((*i)->cost)<<endl;
-    //}
-
-    std::cout<<(*open.rbegin())->cost<<endl;
-    
-    std::cout<<setContains(open,start)<<endl;
-    std::cout<<"Contains start?"<<setContains(open,start)<<endl;
-    std::cout<<"Contains end?"<<setContains(open,end)<<endl;
-
-    Node* currentNode;
-    std::cout<<*open.begin()<< " "<<start<<" "<<start->get_x()<<endl;
-    std::cout<<end<<endl;
-    int stop = 0;
-    while(!open.empty()){
-        // From the open list, grab the node with the smallest cost
-        currentNode = *open.begin();
-        // Move current node to closed queue
-        closed.insert(currentNode);  
-        //open.erase(currentNode);
-        std::cout<< "open size "<<open.size()<<endl;
-        std::cout<< "Erased "<<open.erase(currentNode)<<endl;
-        std::cout<< "open size "<<open.size()<<endl;
-        //std::cout<< "Contains? "<<setContains(open,currentNode)<<endl;
-        //std::cout<< "open size "<<open.size()<<endl;
-        stop++;
-        //std::cout<<(*open.begin())->cost<<" "<<"Lowest F"<<endl;
-        //std::cout<<(*open.rbegin())->cost<<" "<<"Highest F"<<endl;
-        //Node* currentNodeAddress = *open.begin();
-        
-        
-        if(currentNode == end){
-            std::cout<<currentNode->parent->heuristic<<endl;
-            break; // Path found
-        }
-        else if(stop == 500){
-            std::cout<<"Limit reached"<<endl;
-            break;
-        }
-
-        // Add all neighboring Nodes to a vector
-        int x = currentNode->get_x();
-        int y = currentNode->get_y();
-        vector<Node*> neighborNodes(8);
-
-        cout<<"matrix size: "<<mat.size()<<endl;
-        for(int offX=-1,i=0;offX<=1;offX++){
-            if(x+offX < 0 || x+offX > mat.size())
-                continue;
-            
-            for(int offY=-1;offY<=1;offY++){
-                if((offX == 0 && offY == 0) || y+offY < 0 || y+offY > mat[x].size())
-                    continue;
-                neighborNodes[i++] = &mat[x+offX][y+offY]; 
-                
-            }
-        }
-        cout<<"matrix size: "<<mat.size()<<endl;
-        std::cout<<"neighbor size: "<<neighborNodes.size()<<endl;
-        neighborNodes.shrink_to_fit();
-        std::cout<<"neighbor size: "<<neighborNodes.size()<<endl;
-
-        //return;
-        //neighborNodes[0] = &mat[x][y-1];    // North
-        //neighborNodes[1] = &mat[x+1][y-1];    // North-East
-        //neighborNodes[2] = &mat[x+1][y];    // East
-        //neighborNodes[3] = &mat[x+1][y+1];    // South-East
-        //neighborNodes[4] = &mat[x][y+1];    // South
-        //neighborNodes[5] = &mat[x-1][y+1];    // South-West
-        //neighborNodes[6] = &mat[x-1][y];    // West
-        //neighborNodes[7] = &mat[x-1][y-1];    // North-West
-
-        //cout<<neighborNodes[3]->get_x()<<endl;
-        for (auto neighbor : neighborNodes) { 
-            //cout<<neighbor<< "Address"<<endl;
-            int neighborCost =  currentNode->initial + currentNode->get_distance(*neighbor);    // current cost + cost to neighbor
-            if(setContains(open,neighbor)){
-                //cout<<"open"<<endl;
-                if(neighbor->initial <= neighborCost){
-                    continue;
-                }
-                else{
-                    open.erase(neighbor);
-                    neighbor->set_initial(neighborCost);
-                    neighbor->parent = currentNode;
-                    neighbor->nType.color = GREEN;
-                    neighbor->nType.name = "PATH";
-                    open.insert(neighbor);
-                }
-            }
-            else if(setContains(closed,neighbor)){
-                //cout<<"closed"<<endl;
-                if(neighbor->initial <= neighborCost){
-                    continue;
-                }
-                else{
-                    closed.erase(neighbor);
-                    neighbor->set_initial(neighborCost);
-                    neighbor->parent = currentNode;
-                    neighbor->nType.color = GREEN;
-                    neighbor->nType.name = "PATH";
-                    open.insert(neighbor);
-                }
-            }
-            else{
-                //cout<<"neither"<<endl;
-                
-                neighbor->set_heuristic(*end);
-                neighbor->set_initial(neighborCost);
-                std::cout<<neighbor->heuristic<<" H"<<endl;
-                neighbor->parent = currentNode;
-                neighbor->nType.color = GREEN;
-                neighbor->nType.name = "PATH";
-                open.insert(neighbor);
-            }
-            //neighbor->set_initial(neighborCost);
-            //neighbor->parent = currentNode;
-            //neighbor->nType.color = GREEN;
-            //neighbor->nType.name = "PATH";
-        } 
-        //cout<<mat[x][y-1].cost<<" new cost"<<endl;
-        
-    }
-
-    if(currentNode != end){
-        std::cout<<"Error Path Not Found"<<endl;
-    }
+        if(currentNode != end)
+            cout<<"Error: Path not found"<<endl;
 
     return;
-    */
 }
 
 int main () {
@@ -421,8 +250,10 @@ int main () {
     // Default start and end nodes
     Node* start = &matrix[0][0];
     Node* end = &matrix[30][20];
+    set<Node*> walls;
     start->nType.color = BLUE;
     end->nType.color = ORANGE;
+
 
     time_start = clock();
     findPath(start,end,matrix);
@@ -443,15 +274,29 @@ int main () {
 	    //----------------------------------------------------------------------------------
 		int mousePositionX = (GetMouseX() - xOFFSET) / SCALE;
         int mousePositionY = (GetMouseY() - yOFFSET) / SCALE;
-	    	
+	    bool update = false;
+
         // Set new end point
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
-            end = &matrix[mousePositionX][mousePositionY];
-            end->nType.color = ORANGE;
-            time_start = clock();
-            findPath(start,end,matrix);
-            time_end = clock();
-            time_elapsed = time_taken(time_start,time_end);
+            if(&matrix[mousePositionX][mousePositionY] != start){
+                end = &matrix[mousePositionX][mousePositionY];
+                end->nType.color = ORANGE;
+                time_start = clock();
+                findPath(start,end,matrix);
+                time_end = clock();
+                time_elapsed = time_taken(time_start,time_end);
+                update = true;
+            }
+        }
+
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_W)){
+            Node* node = &matrix[mousePositionX][mousePositionY];
+            if(node != end || node != start){
+                node->nType.name = "WALL";
+                node->nType.color = GRAY;
+                walls.insert(node);
+                update = true;
+            }
         }
 
 	    //----------------------------------------------------------------------------------
@@ -475,7 +320,10 @@ int main () {
         DrawRectangle(start->get_x_scaled(),start->get_y_scaled(),SCALE,SCALE,start->nType.color);
         DrawRectangle(end->get_x_scaled(),end->get_y_scaled(),SCALE,SCALE,end->nType.color);
 
-       
+        // Draw walls
+        for(Node* segment : walls){
+            DrawRectangle(segment->get_x_scaled(),segment->get_y_scaled(),SCALE,SCALE,GRAY);
+        }
         
         // Draw out path
         int pathCount =0;
