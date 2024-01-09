@@ -232,6 +232,18 @@ bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
     return currentNode == end;
 }
 
+void generateMaze(vector<vector<Node>> &mat){
+    // Generate Border
+    
+    // Generate Random Verticle
+    int verticles = rand() % mat[0].size();
+    //for(){
+
+    //}
+    // Generate Random Horizontal
+    int horizontals = rand() % mat.size();
+}
+
 int main () {
     std::cout << "Debugging Output" << endl << endl;
 
@@ -280,7 +292,7 @@ int main () {
 	    //----------------------------------------------------------------------------------
 		int mousePositionX = (GetMouseX() - xOFFSET) / SCALE;
         int mousePositionY = (GetMouseY() - yOFFSET) / SCALE;
-	    bool update = false;
+	    bool update = (bool)false;
 
         // Cap mouse position coords
         if(mousePositionX >= (int)matrix.size()){
@@ -328,12 +340,23 @@ int main () {
         }
 
         // Delete All Walls
-        if(IsKeyPressed(KEY_LEFT_CONTROL) && IsKeyDown(KEY_E) || IsKeyPressed(KEY_E) && IsKeyDown(KEY_LEFT_CONTROL)){
+        if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyDown(KEY_E)){
             for(Node* segment : walls){
                 segment->nType.name = VOID;
                 segment->nType.color = WHITE;
             }
             walls.clear();
+        }
+
+        // Randomly Generate Maze
+        if(IsKeyPressed(KEY_LEFT_CONTROL) && IsKeyDown(KEY_G)){
+            for(Node* segment : walls){
+                segment->nType.name = VOID;
+                segment->nType.color = WHITE;
+            }
+            walls.clear();
+
+            generateMaze(matrix);
         }
         
 
