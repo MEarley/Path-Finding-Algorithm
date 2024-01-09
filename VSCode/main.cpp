@@ -13,14 +13,18 @@ const int SCREENWIDTH = 800;
 const int SCREENHEIGHT = 450;
 const int xOFFSET = 0; //SCREENWIDTH / 2;
 const int yOFFSET = 0; //SCREENHEIGHT / 2;
+const Color WALL_COLOR = GRAY;
+const Color PATH_COLOR = GREEN;
+const Color BACKGROUND_COLOR = RAYWHITE;
 
 enum nodeTypes{WALL, PATH, VOID};
 
 
 
+
 class NodeType{
     public:
-    Color color = WHITE;
+    Color color = BACKGROUND_COLOR;
     nodeTypes name = VOID;
 
     NodeType(){}
@@ -216,7 +220,7 @@ bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
             if(!inOpen || neighborCost < neighbor->initial){
                 neighbor->set_initial(neighborCost);
                 neighbor->parent = currentNode;
-                neighbor->nType.color = GREEN;
+                neighbor->nType.color = PATH_COLOR;
 
                 if(!inOpen){
                     neighbor->set_heuristic(*end);
@@ -232,16 +236,43 @@ bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
     return currentNode == end;
 }
 
-void generateMaze(vector<vector<Node>> &mat){
+void generateMaze(vector<vector<Node>> &mat, set<Node*> &walls){
     // Generate Border
+
+    // Generate Random Horizontal
+    int horizontalSegments = (mat.size() / 3);
+    for(int row=0;row<(int)mat[0].size();row+=2){
+        for(int i=0;i<=horizontalSegments;){
+            Node* wallSegment = &mat[rand() % mat.size()][row];
+            if(wallSegment->nType.name == WALL){
+                continue;
+            }
+            else{
+                wallSegment->nType.name = WALL;
+                wallSegment->nType.color = WALL_COLOR;
+                walls.insert(wallSegment);
+                i++;
+            }
+        }
+    }
     
     // Generate Random Verticle
-    int verticles = rand() % mat[0].size();
-    //for(){
-
-    //}
-    // Generate Random Horizontal
-    int horizontals = rand() % mat.size();
+    int verticleSegments = (mat[0].size() / 3);
+    for(int col=0;col<(int)mat.size();col+=2){
+        for(int i=0;i<=verticleSegments;){
+            Node* wallSegment = &mat[col][rand() % mat[col].size()];
+            if(wallSegment->nType.name == WALL){
+                continue;
+            }
+            else{
+                wallSegment->nType.name = WALL;
+                wallSegment->nType.color = WALL_COLOR;
+                walls.insert(wallSegment);
+                i ++;
+            }
+        }
+    }
+    
 }
 
 int main () {
@@ -303,6 +334,21 @@ int main () {
             mousePositionY = matrix[0].size() - 1;
         }
 
+        // Set new start point
+        if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && IsKeyDown(KEY_LEFT_CONTROL)){
+            if(matrix[mousePositionX][mousePositionY].nType.name != WALL && &matrix[mousePositionX][mousePositionY] != end){
+                start = &matrix[mousePositionX][mousePositionY];
+                start->nType.color = BLUE;
+                start->nType.name = PATH;
+                time_start = clock();
+                pathExist = findPath(start,end,matrix);
+                update = pathExist;
+                time_end = clock();
+                time_elapsed = time_taken(time_start,time_end);
+            }
+        }
+
+
         // Set new end point
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
             if(matrix[mousePositionX][mousePositionY].nType.name != WALL && &matrix[mousePositionX][mousePositionY] != start){
@@ -322,7 +368,7 @@ int main () {
             Node* node = &matrix[mousePositionX][mousePositionY];
             if(node != end || node != start){
                 node->nType.name = WALL;
-                node->nType.color = GRAY;
+                node->nType.color = WALL_COLOR;
                 walls.insert(node);
                 update = true;
             }
@@ -333,7 +379,7 @@ int main () {
             Node* node = &matrix[mousePositionX][mousePositionY];
             if(node->nType.name == WALL){
                 node->nType.name = VOID;
-                node->nType.color = WHITE;
+                node->nType.color = BACKGROUND_COLOR;
                 walls.erase(node);
                 update = true;
             }
@@ -343,20 +389,20 @@ int main () {
         if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyDown(KEY_E)){
             for(Node* segment : walls){
                 segment->nType.name = VOID;
-                segment->nType.color = WHITE;
+                segment->nType.color = BACKGROUND_COLOR;
             }
             walls.clear();
         }
 
         // Randomly Generate Maze
-        if(IsKeyPressed(KEY_LEFT_CONTROL) && IsKeyDown(KEY_G)){
+        if(IsKeyPressed(KEY_G) && IsKeyDown(KEY_LEFT_CONTROL)){
             for(Node* segment : walls){
                 segment->nType.name = VOID;
-                segment->nType.color = WHITE;
+                segment->nType.color = BACKGROUND_COLOR;
             }
             walls.clear();
 
-            generateMaze(matrix);
+            generateMaze(matrix,walls);
         }
         
 
@@ -365,7 +411,7 @@ int main () {
 	    // Draw
 	    //----------------------------------------------------------------------------------
 	    BeginDrawing();
-	    ClearBackground(RAYWHITE);
+	    ClearBackground(BACKGROUND_COLOR);
         
         // Explored Areas
         /*
