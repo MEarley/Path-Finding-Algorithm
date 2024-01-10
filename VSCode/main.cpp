@@ -13,9 +13,12 @@ const int SCREENWIDTH = 800;
 const int SCREENHEIGHT = 450;
 const int xOFFSET = 0; //SCREENWIDTH / 2;
 const int yOFFSET = 0; //SCREENHEIGHT / 2;
+const Color START_COLOR = BLUE;
+const Color END_COLOR = ORANGE;
 const Color WALL_COLOR = GRAY;
 const Color PATH_COLOR = GREEN;
 const Color BACKGROUND_COLOR = RAYWHITE;
+const Color TEXT_COLOR = Fade(BLACK, 0.75);
 
 enum nodeTypes{WALL, PATH, VOID};
 
@@ -187,7 +190,7 @@ bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
         // End loop if currentNode is the end Node
         if(currentNode == end){
             end->nType.color = ORANGE;
-            std::cout<<"Path Found!!!"<<endl;
+            //std::cout<<"Path Found!!!"<<endl;
             break;
         }
 
@@ -204,7 +207,14 @@ bool findPath(Node* start, Node* end, vector<vector<Node>> &mat){
             for(int offY=-1;offY<=1;offY++){
                 if((offX == 0 && offY == 0) || y+offY < 0 || y+offY >= (int)mat[x].size() || mat[x+offX][y+offY].nType.name == WALL)
                     continue; 
-                neighborNodes.push_back(&mat[x+offX][y+offY]); 
+
+                // Prevent diagonals from slipping through cracks
+                if(x && y && mat[x][y+offY].nType.name == WALL && mat[x+offX][y].nType.name == WALL){
+                    continue;
+                }
+                else{
+                    neighborNodes.push_back(&mat[x+offX][y+offY]); 
+                }
             }
         }
         neighborNodes.shrink_to_fit();
@@ -338,7 +348,7 @@ int main () {
         if(IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && IsKeyDown(KEY_LEFT_CONTROL)){
             if(matrix[mousePositionX][mousePositionY].nType.name != WALL && &matrix[mousePositionX][mousePositionY] != end){
                 start = &matrix[mousePositionX][mousePositionY];
-                start->nType.color = BLUE;
+                start->nType.color = START_COLOR;
                 start->nType.name = PATH;
                 time_start = clock();
                 pathExist = findPath(start,end,matrix);
@@ -353,7 +363,7 @@ int main () {
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_CONTROL)){
             if(matrix[mousePositionX][mousePositionY].nType.name != WALL && &matrix[mousePositionX][mousePositionY] != start){
                 end = &matrix[mousePositionX][mousePositionY];
-                end->nType.color = ORANGE;
+                end->nType.color = END_COLOR;
                 end->nType.name = PATH;
                 time_start = clock();
                 pathExist = findPath(start,end,matrix);
@@ -404,6 +414,8 @@ int main () {
 
             generateMaze(matrix,walls);
         }
+
+        
         
 
 	    //----------------------------------------------------------------------------------
@@ -432,7 +444,7 @@ int main () {
         Node* next = end->parent;
         if(pathExist){
             while(next != start){
-                DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,GREEN);
+                DrawRectangle(next->get_x_scaled(),next->get_y_scaled(),SCALE,SCALE,PATH_COLOR);
                 next = next->parent;
                 pathCount++;
             }
@@ -441,23 +453,25 @@ int main () {
 
         // Draw walls
         for(Node* segment : walls){
-            DrawRectangle(segment->get_x_scaled(),segment->get_y_scaled(),SCALE,SCALE,GRAY);
+            DrawRectangle(segment->get_x_scaled(),segment->get_y_scaled(),SCALE,SCALE,WALL_COLOR);
         }
 
         // Write out mouse coordinates
         string mousePosition = "x: " + to_string(mousePositionX) + " y: " + to_string(mousePositionY);
-        DrawText(mousePosition.c_str(),700,0,10,BLACK);
+        DrawText(mousePosition.c_str(),700,0,10,TEXT_COLOR);
         // Write out steps taken
-		DrawText(("Step count: " + to_string(pathCount)).c_str(), 30, 0, 20, BLACK);
+		DrawText(("Step count: " + to_string(pathCount)).c_str(), 30, 0, 20, TEXT_COLOR);
 	    
         // Write out time elapsed during findPath()
         if(time_elapsed >= 1.0)
-            DrawText(("Time elapsed: " + to_string((ceil(time_elapsed * 1000)/1000.00)) + "sec").c_str(), 30, 30, 20, BLACK);
+            DrawText(("Time elapsed: " + to_string((ceil(time_elapsed * 1000)/1000.00)) + "sec").c_str(), 30, 30, 20, TEXT_COLOR);
         else
-            DrawText(("Time elapsed: " + to_string(((int)(time_elapsed * 1000))) + "ms").c_str(), 30, 30, 20, BLACK);
-        
-        
-        DrawText("Path Finding", 190, 200, 20, BLACK);
+            DrawText(("Time elapsed: " + to_string(((int)(time_elapsed * 1000))) + "ms").c_str(), 30, 30, 20, TEXT_COLOR);
+
+        // Show Controls
+        if(IsKeyDown(KEY_LEFT_CONTROL) && IsKeyDown(KEY_H)){
+            DrawText(("Place Start: CTRL + Right Mouse\n\nPlace End: CTRL + Left Mouse\n\nPlace Wall: W + Left Mouse\n\nErase Wall: E + Left Mouse\n\nErase All Walls: CTRL + E\n\nGenerate Maze: CTRL + G"),SCREENWIDTH / 3,SCREENHEIGHT / 3,20,TEXT_COLOR);
+        }
 		
 	    WaitTime(0.01);
 		EndDrawing();
