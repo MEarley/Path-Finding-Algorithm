@@ -308,7 +308,7 @@ int main () {
 
     // Default start and end nodes
     Node* start = &matrix[0][0];
-    Node* end = &matrix[30][20];
+    Node* end = &matrix[matrix.size()-1][matrix[0].size()-1];
     set<Node*> walls;
     start->nType.color = BLUE;
     end->nType.color = ORANGE;
@@ -339,9 +339,15 @@ int main () {
         if(mousePositionX >= (int)matrix.size()){
             mousePositionX = matrix.size() - 1;
         }
+        else if(mousePositionX < 0){
+            mousePositionX = 0;
+        }
 
         if(mousePositionY >= (int)matrix[0].size()){
             mousePositionY = matrix[0].size() - 1;
+        }
+        else if(mousePositionY < 0){
+            mousePositionY = 0;
         }
 
         // Set new start point
